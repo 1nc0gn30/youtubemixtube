@@ -22,6 +22,7 @@ uniform sampler2D tex2;
 uniform vec2 uMouse;
 uniform float uMouseStrength;
 uniform vec2 uDeviceTilt;
+uniform float uTiltVelocity;
 uniform int uStyle;
 uniform float uGlitchIntensity;
 uniform float uAberrationStrength;
@@ -47,7 +48,11 @@ float noise(vec2 p){
 }
 
 void main() {
-    vec2 p = vUv;
+    // Zoom in on the UVs to crop out potential black bars at the edges (especially hqdefault 4:3 borders).
+    // The zoom factor scales up dynamically with physical gyroscopic movements to guarantee a safe displacement margin.
+    float tiltForce = length(uDeviceTilt);
+    float activeZoom = 1.15 + (tiltForce * 0.05) + (uTiltVelocity * 0.4);
+    vec2 p = (vUv - 0.5) / activeZoom + 0.5;
     
     // 1. Mouse interactive blocky datamosh displacement
     float mouseDist = distance(p, uMouse);
@@ -62,21 +67,26 @@ void main() {
     // Smooth progress curve
     float pState = smoothstep(0.0, 1.0, progress);
     
-    // Base glitch intensity is augmented dynamically by phone motion tilt
-    float tiltForce = length(uDeviceTilt);
-    float dynamicIntensity = (sin(pState * 3.14159) * uGlitchIntensity) + (tiltForce * 0.45);
+    // Base glitch intensity is augmented dynamically by phone motion force and velocity
+    float motionForce = (tiltForce * 0.15) + (uTiltVelocity * 3.5);
+    float dynamicIntensity = (sin(pState * 3.14159) * uGlitchIntensity) + (motionForce * 1.2);
     
     vec2 disp = vec2(0.0);
     float blockNoise = 0.0;
     
     // 2. Gyroscope phone motion blocky datamosh distortion
-    if (tiltForce > 0.04) {
-        float tiltBlocks = mix(100.0, 20.0, clamp(tiltForce, 0.0, 1.0));
+    // Instead of simple translation (which leaks black bars), rotate/shake pushes blocks in random noise-driven directions.
+    if (motionForce > 0.02) {
+        float tiltBlocks = mix(120.0, 15.0, clamp(motionForce * 1.5, 0.0, 1.0));
         vec2 p_pixel_tilt = floor(p * tiltBlocks) / tiltBlocks;
-        float tiltNoise = rand(p_pixel_tilt + time * 0.06);
         
-        // Push pixel blocks in the exact physical direction of the phone tilt
-        disp += uDeviceTilt * tiltForce * 0.16 * (tiltNoise - 0.2);
+        // Random direction for each block based on floor block UV coordinates and time
+        vec2 randomDir = vec2(
+            rand(p_pixel_tilt + floor(time * 12.0) * 0.03),
+            rand(p_pixel_tilt.yx + floor(time * 12.0) * 0.07 + 1.5)
+        ) - 0.5;
+        
+        disp += randomDir * motionForce * 0.42;
     }
     
     // Styles: 0 = Classic Datamosh, 1 = Horizontal Tear, 2 = VHS Melt, 3 = Pixelate Melt
@@ -116,16 +126,18 @@ void main() {
         blockNoise = rand(p_pixel + time * 0.1);
     }
     
-    // Chromatic Aberration & Phone Tilt dynamic drift
-    float tiltAberrationX = uDeviceTilt.x * 0.038 * uAberrationStrength;
-    float tiltAberrationY = uDeviceTilt.y * 0.038 * uAberrationStrength;
+    // Chromatic Aberration & Phone Tilt dynamic split
+    // Absolute tilt drives static color separation (depth effect), and velocity adds quick high-frequency channel vibration
+    float tiltAberrationX = uDeviceTilt.x * 0.045 * uAberrationStrength + (uTiltVelocity * 0.08 * (rand(vec2(time)) - 0.5));
+    float tiltAberrationY = uDeviceTilt.y * 0.045 * uAberrationStrength + (uTiltVelocity * 0.08 * (rand(vec2(time + 1.0)) - 0.5));
 
     float rOffset = dynamicIntensity * 0.03 * uAberrationStrength * (blockNoise + 0.2) + tiltAberrationX;
     float bOffset = -dynamicIntensity * 0.02 * uAberrationStrength * (blockNoise + 0.2) - tiltAberrationX;
 
-    vec2 uvRed = fract(p + disp + vec2(rOffset, tiltAberrationY));
-    vec2 uvGreen = fract(p + disp);
-    vec2 uvBlue = fract(p + disp + vec2(bOffset, -tiltAberrationY));
+    // Use clamp to edge to enforce border clamping (creates smears instead of seam jumps)
+    vec2 uvRed = clamp(p + disp + vec2(rOffset, tiltAberrationY), 0.0, 1.0);
+    vec2 uvGreen = clamp(p + disp, 0.0, 1.0);
+    vec2 uvBlue = clamp(p + disp + vec2(bOffset, -tiltAberrationY), 0.0, 1.0);
     
     // Sample from tex1 (outgoing) and tex2 (incoming)
     vec3 c1 = vec3(
@@ -161,7 +173,7 @@ void main() {
     
     gl_FragColor = vec4(finalColor, 1.0);
 }
-`;
+`
 
 // Helper for smoothstep interpolation
 const smoothstep = (min: number, max: number, value: number) => {
@@ -257,6 +269,7 @@ const ImageTransitionMaterial = ({
     uMouse: { value: new Vector2(0.5, 0.5) },
     uMouseStrength: { value: mouseStrength },
     uDeviceTilt: { value: new Vector2(0, 0) },
+    uTiltVelocity: { value: 0 },
     uStyle: { value: transitionStyle },
     uGlitchIntensity: { value: glitchIntensity },
     uAberrationStrength: { value: aberrationStrength },
@@ -275,6 +288,8 @@ const ImageTransitionMaterial = ({
 
   const smoothedMouse = useRef(new Vector2(0.5, 0.5));
   const smoothedTilt = useRef(new Vector2(0, 0));
+  const prevTilt = useRef(new Vector2(0, 0));
+  const tiltVelocity = useRef(0);
 
   useFrame((state) => {
     if (materialRef.current) {
@@ -286,8 +301,20 @@ const ImageTransitionMaterial = ({
       materialRef.current.uniforms.uMouse.value.copy(smoothedMouse.current);
       
       // Smoothly interpolate phone gyroscopic tilts
-      smoothedTilt.current.lerp(new Vector2(deviceTiltRef.current.x, deviceTiltRef.current.y), 0.1);
+      const currentTilt = new Vector2(deviceTiltRef.current.x, deviceTiltRef.current.y);
+      smoothedTilt.current.lerp(currentTilt, 0.1);
       materialRef.current.uniforms.uDeviceTilt.value.copy(smoothedTilt.current);
+      
+      // Calculate tilt velocity (instantaneous change smoothed over time)
+      const diff = currentTilt.clone().sub(prevTilt.current);
+      const instantVelocity = diff.length();
+      
+      // Smooth out the velocity spikes
+      tiltVelocity.current = tiltVelocity.current * 0.88 + instantVelocity * 0.12;
+      materialRef.current.uniforms.uTiltVelocity.value = tiltVelocity.current;
+      
+      // Cache previous tilt
+      prevTilt.current.copy(currentTilt);
       
       if (texture1) materialRef.current.uniforms.tex1.value = texture1;
       if (texture2) materialRef.current.uniforms.tex2.value = texture2;
