@@ -1,0 +1,6 @@
+{
+  "name": "YouTube Music Thumbnail Stream",
+  "description": "A fullscreen continuous slideshow of unique, high-resolution YouTube thumbnails from top music artists without repetition.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

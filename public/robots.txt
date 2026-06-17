@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://you-mix-the-tube.netlify.app/sitemap.xml
