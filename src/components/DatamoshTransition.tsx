@@ -62,55 +62,66 @@ void main() {
     // Smooth progress curve
     float pState = smoothstep(0.0, 1.0, progress);
     
-    // Intense glitch occurs mainly in the middle of the transition
-    float intensity = sin(pState * 3.14159) * uGlitchIntensity;
+    // Base glitch intensity is augmented dynamically by phone motion tilt
+    float tiltForce = length(uDeviceTilt);
+    float dynamicIntensity = (sin(pState * 3.14159) * uGlitchIntensity) + (tiltForce * 0.45);
     
     vec2 disp = vec2(0.0);
     float blockNoise = 0.0;
     
+    // 2. Gyroscope phone motion blocky datamosh distortion
+    if (tiltForce > 0.04) {
+        float tiltBlocks = mix(100.0, 20.0, clamp(tiltForce, 0.0, 1.0));
+        vec2 p_pixel_tilt = floor(p * tiltBlocks) / tiltBlocks;
+        float tiltNoise = rand(p_pixel_tilt + time * 0.06);
+        
+        // Push pixel blocks in the exact physical direction of the phone tilt
+        disp += uDeviceTilt * tiltForce * 0.16 * (tiltNoise - 0.2);
+    }
+    
     // Styles: 0 = Classic Datamosh, 1 = Horizontal Tear, 2 = VHS Melt, 3 = Pixelate Melt
     if (uStyle == 0) {
         // Scanline & blocky datamosh displacement
-        float blocks = mix(200.0, 20.0, intensity);
+        float blocks = mix(200.0, 20.0, dynamicIntensity);
         vec2 p_pixel = floor(p * blocks) / blocks;
         blockNoise = rand(p_pixel + time * 0.05);
         
-        disp = vec2(
-            (blockNoise * 2.0 - 1.0) * intensity * 0.15,
-            (rand(p_pixel.yx - time * 0.1) * 2.0 - 1.0) * intensity * 0.05
+        disp += vec2(
+            (blockNoise * 2.0 - 1.0) * dynamicIntensity * 0.15,
+            (rand(p_pixel.yx - time * 0.1) * 2.0 - 1.0) * dynamicIntensity * 0.05
         );
     } 
     else if (uStyle == 1) {
         // Horizontal tearing effect
         float n = noise(vec2(p.y * 60.0, time * 15.0));
         if (n > 0.6) {
-            disp.x = (rand(vec2(floor(p.y * 40.0), time)) * 2.0 - 1.0) * intensity * 0.25;
+            disp.x += (rand(vec2(floor(p.y * 40.0), time)) * 2.0 - 1.0) * dynamicIntensity * 0.25;
         }
         blockNoise = rand(p + time);
     } 
     else if (uStyle == 2) {
         // VHS Tracking Line vertical roll
-        float roll = fract(time * 0.15) * intensity * 0.5;
+        float roll = fract(time * 0.15) * dynamicIntensity * 0.5;
         p.y = fract(p.y + roll);
         
         float band = step(0.88, sin(p.y * 4.0 - time * 3.0));
-        disp.x = band * intensity * 0.08 * sin(p.y * 120.0);
+        disp.x += band * dynamicIntensity * 0.08 * sin(p.y * 120.0);
         blockNoise = rand(vec2(p.x, floor(p.y * 12.0) + time));
     } 
     else if (uStyle == 3) {
         // Pixelate Melt datamosh
-        float blocks = mix(150.0, 10.0, intensity);
+        float blocks = mix(150.0, 10.0, dynamicIntensity);
         vec2 p_pixel = floor(p * blocks) / blocks;
-        disp.y = intensity * 0.18 * rand(vec2(p_pixel.x, 0.0));
+        disp.y += dynamicIntensity * 0.18 * rand(vec2(p_pixel.x, 0.0));
         blockNoise = rand(p_pixel + time * 0.1);
     }
     
     // Chromatic Aberration & Phone Tilt dynamic drift
-    float tiltAberrationX = uDeviceTilt.x * 0.024 * uAberrationStrength;
-    float tiltAberrationY = uDeviceTilt.y * 0.024 * uAberrationStrength;
+    float tiltAberrationX = uDeviceTilt.x * 0.038 * uAberrationStrength;
+    float tiltAberrationY = uDeviceTilt.y * 0.038 * uAberrationStrength;
 
-    float rOffset = intensity * 0.03 * uAberrationStrength * (blockNoise + 0.2) + tiltAberrationX;
-    float bOffset = -intensity * 0.02 * uAberrationStrength * (blockNoise + 0.2) - tiltAberrationX;
+    float rOffset = dynamicIntensity * 0.03 * uAberrationStrength * (blockNoise + 0.2) + tiltAberrationX;
+    float bOffset = -dynamicIntensity * 0.02 * uAberrationStrength * (blockNoise + 0.2) - tiltAberrationX;
 
     vec2 uvRed = fract(p + disp + vec2(rOffset, tiltAberrationY));
     vec2 uvGreen = fract(p + disp);
@@ -132,16 +143,16 @@ void main() {
     // Crossfade threshold
     float threshold = pState;
     if (uStyle == 0) {
-        threshold = pState + intensity * (blockNoise - 0.5);
+        threshold = pState + dynamicIntensity * (blockNoise - 0.5);
     } else {
-        threshold = pState + intensity * 0.2 * (blockNoise - 0.5);
+        threshold = pState + dynamicIntensity * 0.2 * (blockNoise - 0.5);
     }
     
     // Combine
     vec3 finalColor = mix(c1, c2, smoothstep(0.4, 0.6, threshold));
     
     // Add film grain
-    float grain = (rand(p + time) - 0.5) * 0.08 * uGlitchIntensity;
+    float grain = (rand(p + time) - 0.5) * 0.08 * dynamicIntensity;
     finalColor += grain;
     
     // Scanlines
@@ -331,7 +342,6 @@ const PlaneViewport = ({
 
   // Device orientation tilt vectors
   const deviceTiltRef = useRef({ x: 0, y: 0 });
-  const smoothedTilt = useRef({ x: 0, y: 0 });
 
   // Handle device orientation events locally
   useEffect(() => {
@@ -439,20 +449,12 @@ const PlaneViewport = ({
 
   useFrame((state) => {
     if (meshRef.current) {
+        // Continuous slow Ken Burns zoom
         const scaleVal = 1.05 + Math.sin(state.clock.elapsedTime * 0.15) * 0.04;
         
-        // Smoothly lerp tilts for rendering
-        smoothedTilt.current.x = smoothedTilt.current.x * 0.9 + deviceTiltRef.current.x * 0.1;
-        smoothedTilt.current.y = smoothedTilt.current.y * 0.9 + deviceTiltRef.current.y * 0.1;
-
-        // Apply 3D perspective rotation tilt
-        meshRef.current.rotation.y = smoothedTilt.current.x * 0.15;
-        meshRef.current.rotation.x = -smoothedTilt.current.y * 0.15;
-        
-        // Apply camera follow translation shift
-        meshRef.current.position.x = smoothedTilt.current.x * 0.22;
-        meshRef.current.position.y = -smoothedTilt.current.y * 0.22;
-
+        // Keep mesh strictly static and centered to fill viewport (no black leaks!)
+        meshRef.current.position.set(0, 0, 0);
+        meshRef.current.rotation.set(0, 0, 0);
         meshRef.current.scale.set(viewport.width * scaleVal, viewport.height * scaleVal, 1);
     }
   });
