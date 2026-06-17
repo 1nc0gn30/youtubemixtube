@@ -1085,6 +1085,87 @@ export default function App() {
                   </p>
                 </div>
 
+                {/* Tech Stack Shoutout Footer */}
+                <div className="border-t border-white/5 pt-6 space-y-4 pb-2">
+                  <h4 className="text-[8px] font-bold tracking-[0.25em] text-white/30 uppercase text-center">
+                    Powered by Next-Gen Web Stack
+                  </h4>
+                  <div className="flex flex-wrap items-center justify-center gap-6">
+                    <a 
+                      href="https://join.netlify.com/d8a2zdtel9gy-w6zrwt" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-white/40 hover:text-emerald-400 hover:scale-110 transition duration-300"
+                      title="Deploy on Netlify (#HotAppSummer)"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19.78 10.45l-5.26-9.15a1 1 0 0 0-1.74 0L10 6.13a1 1 0 0 0 .87 1.5h1.94a.5.5 0 0 1 .43.75l-4.52 7.84a1 1 0 0 0 1.74 1l5.24-9.11a1 1 0 0 0 0-1.66z"/>
+                        <path d="M11 15.63l-4.26-7.41a1 1 0 0 0-.87-.46H3.06a1 1 0 0 0-.87 1.5l5.24 9.11a1 1 0 0 0 1.74 0l1.83-3.18a.5.5 0 0 0 0-.52z"/>
+                      </svg>
+                    </a>
+                    <a 
+                      href="https://react.dev" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-white/40 hover:text-cyan-400 hover:scale-110 transition duration-300"
+                      title="React 19 Framework"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-2" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse rx="10" ry="4.5" transform="rotate(0)" cx="12" cy="12" />
+                        <ellipse rx="10" ry="4.5" transform="rotate(60)" cx="12" cy="12" />
+                        <ellipse rx="10" ry="4.5" transform="rotate(120)" cx="12" cy="12" />
+                        <circle cx="12" cy="12" r="2" className="fill-current stroke-none" />
+                      </svg>
+                    </a>
+                    <a 
+                      href="https://threejs.org" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-white/40 hover:text-white hover:scale-110 transition duration-300"
+                      title="Three.js & React Three Fiber (WebGL)"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-[1.5]" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5M2 7v10M12 12v10M22 7v10" />
+                      </svg>
+                    </a>
+                    <a 
+                      href="https://vite.dev" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-white/40 hover:text-purple-400 hover:scale-110 transition duration-300"
+                      title="Vite Build System"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-2" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 4l10 16L22 4" />
+                        <path d="M13 3l-6 8h6l-2 8 8-10h-6l2-6z" className="fill-current stroke-none" />
+                      </svg>
+                    </a>
+                    <a 
+                      href="https://tailwindcss.com" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-white/40 hover:text-sky-400 hover:scale-110 transition duration-300"
+                      title="Tailwind CSS v4 Styling"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12.001 4.8c-3.2 0-5.2 1.6-6 4.8 1.2-1.6 2.6-2.2 4.2-1.8 0.916.229 1.57.893 2.296 1.631C13.684 10.638 15.019 12 18.001 12c3.2 0 5.2-1.6 6-4.8-1.2 1.6-2.6 2.2-4.2 1.8-.915-.229-1.57-.893-2.296-1.631C16.319 6.162 14.983 4.8 12.001 4.8zm-6 7.2c-3.2 0-5.2 1.6-6 4.8 1.2-1.6 2.6-2.2 4.2-1.8.916.23 1.57.893 2.296 1.631C7.683 17.838 9.019 19.2 12.001 19.2c3.2 0 5.2-1.6 6-4.8-1.2 1.6-2.6 2.2-4.2 1.8-.915-.229-1.57-.893-2.296-1.631C10.318 13.362 8.983 12 6.001 12z" />
+                      </svg>
+                    </a>
+                    <a 
+                      href="https://gemini.google" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-white/40 hover:text-emerald-400 hover:scale-110 transition duration-300"
+                      title="Antigravity Gemini AI Pair Programmer"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current stroke-2" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 3L4 21h4.5l2-5h3l2 5H20L12 3zm-1 9l1-3 1 3h-2z" className="fill-current stroke-none" />
+                        <ellipse rx="9" ry="3.5" transform="rotate(-15)" cx="12" cy="14" className="stroke-emerald-400 stroke-[1.5]" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+
               </div>
 
               <div className="border-t border-white/5 bg-black/30 p-6 flex justify-end shrink-0 sm:rounded-b-3xl">
